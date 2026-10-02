@@ -1,0 +1,113 @@
+@import "tailwindcss";
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-3px); }
+  20%, 40%, 60%, 80% { transform: translateX(3px); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes celebrate {
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.08); opacity: 1; background-color: #f0f0e8; }
+  100% { transform: scale(0.9); opacity: 0; }
+}
+
+@keyframes confettiFall {
+  0% { 
+    transform: translateY(0) rotate(0deg); 
+    opacity: 1; 
+  }
+  100% { 
+    transform: translateY(100vh) rotate(720deg); 
+    opacity: 0; 
+  }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.animate-shake {
+  animation: shake 0.5s ease-in-out;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.4s ease-out forwards;
+}
+
+.animate-celebrate {
+  animation: celebrate 0.9s ease-in-out forwards;
+}
+
+.animate-confetti-fall {
+  animation: confettiFall 2s ease-in forwards;
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+/* Game buttons */
+.game-btn-outline {
+  @apply px-5 py-2.5 border-2 border-gray-800 text-gray-800 rounded-full font-bold text-[13px] hover:bg-gray-50 transition-colors uppercase tracking-wide;
+}
+
+.game-btn-submit {
+  @apply px-5 py-2.5 rounded-full font-bold text-[13px] transition-all uppercase tracking-wide;
+}
+
+.game-btn-submit-active {
+  @apply bg-gray-800 text-white hover:bg-gray-700 shadow-md cursor-pointer;
+}
+
+.game-btn-submit-disabled {
+  @apply bg-gray-200 text-gray-400 cursor-not-allowed;
+}
+
+.game-btn-dark {
+  @apply px-8 py-3 bg-gray-800 text-white rounded-full font-bold text-[14px] hover:bg-gray-700 transition-colors shadow-lg;
+}
+
+/* Review buttons */
+.review-btn-primary {
+  @apply flex items-center gap-2 px-5 py-2.5 bg-purple-600 text-white rounded-full font-bold text-[13px] hover:bg-purple-700 transition-colors shadow-md;
+}
+
+.review-btn-secondary {
+  @apply flex items-center gap-2 px-5 py-2.5 border-2 border-purple-600 text-purple-600 rounded-full font-bold text-[13px] hover:bg-purple-50 transition-colors;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+button {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Border width utility for spinner */
+.border-3 {
+  border-width: 3px;
+}
