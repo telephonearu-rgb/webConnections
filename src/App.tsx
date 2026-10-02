@@ -1,75 +1,160 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef, createContext, useContext } from 'react';
 
-// Game data - 4 groups of 4 words each
+// ============ TRANSLATIONS ============
+type Lang = 'en' | 'ru';
+
+const translations = {
+  en: {
+    title: 'Connections',
+    subtitle: 'Create four groups of four!',
+    shuffle: 'Shuffle',
+    deselectAll: 'Deselect All',
+    submit: 'Submit',
+    mistakesRemaining: 'Mistakes remaining:',
+    oneAway: 'One away!',
+    nextTime: 'Next time!',
+    groupsLeft: (n: number) => `You had ${n} group${n !== 1 ? 's' : ''} left to find.`,
+    brilliant: 'Brilliant!',
+    foundAll: 'You found all connections!',
+    perfect: 'Perfect — no mistakes!',
+    mistakes: (n: number) => `${n} mistake${n !== 1 ? 's' : ''}`,
+    playAgain: 'Play Again',
+    leaveReview: 'Leave a Review',
+    viewReviews: 'View Reviews',
+    reviewsTitle: 'Reviews',
+    noReviews: 'No reviews yet.',
+    beFirst: 'Be the first to leave a review!',
+    close: 'Close',
+    openForm: 'Open in New Tab',
+    reviewNote: 'Your review will be sent via Google Forms',
+    viewNote: 'Reviews are collected via Google Forms. Click below to see all submitted reviews.',
+    viewResponses: 'View All Responses',
+    poweredBy: 'Powered by Google Forms',
+  },
+  ru: {
+    title: 'Связи',
+    subtitle: 'Создайте четыре группы по четыре!',
+    shuffle: 'Перемешать',
+    deselectAll: 'Снять выбор',
+    submit: 'Отправить',
+    mistakesRemaining: 'Осталось ошибок:',
+    oneAway: 'Почти!',
+    nextTime: 'В следующий раз!',
+    groupsLeft: (n: number) => `Осталось найти ${n} ${n === 1 ? 'группу' : n < 5 ? 'группы' : 'групп'}.`,
+    brilliant: 'Отлично!',
+    foundAll: 'Вы нашли все связи!',
+    perfect: 'Идеально — без ошибок!',
+    mistakes: (n: number) => `${n} ${n === 1 ? 'ошибка' : n < 5 ? 'ошибки' : 'ошибок'}`,
+    playAgain: 'Играть снова',
+    leaveReview: 'Оставить отзыв',
+    viewReviews: 'Смотреть отзывы',
+    reviewsTitle: 'Отзывы',
+    noReviews: 'Пока нет отзывов.',
+    beFirst: 'Оставьте первый отзыв!',
+    close: 'Закрыть',
+    openForm: 'Открыть в новой вкладке',
+    reviewNote: 'Ваш отзыв будет отправлен через Google Формы',
+    viewNote: 'Отзывы собираются через Google Формы. Нажмите ниже, чтобы увидеть все отправленные отзывы.',
+    viewResponses: 'Посмотреть все ответы',
+    poweredBy: 'Работает на Google Формы',
+  },
+} as const;
+
+interface TranslationShape {
+  title: string;
+  subtitle: string;
+  shuffle: string;
+  deselectAll: string;
+  submit: string;
+  mistakesRemaining: string;
+  oneAway: string;
+  nextTime: string;
+  groupsLeft: (n: number) => string;
+  brilliant: string;
+  foundAll: string;
+  perfect: string;
+  mistakes: (n: number) => string;
+  playAgain: string;
+  leaveReview: string;
+  viewReviews: string;
+  reviewsTitle: string;
+  noReviews: string;
+  beFirst: string;
+  close: string;
+  openForm: string;
+  reviewNote: string;
+  viewNote: string;
+  viewResponses: string;
+  poweredBy: string;
+}
+
+const LangContext = createContext<{
+  lang: Lang;
+  setLang: (l: Lang) => void;
+  t: TranslationShape;
+}>({
+  lang: 'en',
+  setLang: () => {},
+  t: translations.en as TranslationShape,
+});
+
+function useLang() {
+  return useContext(LangContext);
+}
+
+// ============ GOOGLE FORM ============
+const GOOGLE_FORM_URL =
+  'https://docs.google.com/forms/d/e/1FAIpQLSftra5aBoeRjT_RFEm5kz-L7wVGLsOpTCp8RGCWr4hP-hSxYg/viewform';
+const GOOGLE_FORM_EMBEDDED = GOOGLE_FORM_URL + '?embedded=true';
+const GOOGLE_FORM_RESPONSES =
+  'https://docs.google.com/forms/d/e/1FAIpQLSftra5aBoeRjT_RFEm5kz-L7wVGLsOpTCp8RGCWr4hP-hSxYg/viewanalytics';
+
+// ============ GAME DATA ============
 const GROUPS = [
   {
-    category: "BREAKFAST FOODS",
-    words: ["WAFFLE", "TOAST", "CEREAL", "YOGURT"],
-    color: "#f9df6d",
-    textColor: "#5c4b00",
+    category: 'BREAKFAST FOODS',
+    categoryRu: 'ЕДА НА ЗАВТРАК',
+    words: ['WAFFLE', 'TOAST', 'CEREAL', 'YOGURT'],
+    color: '#f9df6d',
+    textColor: '#5c4b00',
     difficulty: 1,
   },
   {
-    category: "THINGS YOU WEAR ON YOUR HEAD",
-    words: ["CROWN", "HELMET", "TURBAN", "BERET"],
-    color: "#a0c35a",
-    textColor: "#2d4a0a",
+    category: 'THINGS YOU WEAR ON YOUR HEAD',
+    categoryRu: 'НОСЯТ НА ГОЛОВЕ',
+    words: ['CROWN', 'HELMET', 'TURBAN', 'BERET'],
+    color: '#a0c35a',
+    textColor: '#2d4a0a',
     difficulty: 2,
   },
   {
     category: "WORDS MEANING 'FAST'",
-    words: ["RAPID", "SWIFT", "FLEET", "HASTY"],
-    color: "#b0c4ef",
-    textColor: "#1a2f5c",
+    categoryRu: 'СИНОНИМЫ «БЫСТРЫЙ»',
+    words: ['RAPID', 'SWIFT', 'FLEET', 'HASTY'],
+    color: '#b0c4ef',
+    textColor: '#1a2f5c',
     difficulty: 3,
   },
   {
-    category: "___ PAPER",
-    words: ["WRAPPING", "SAND", "TRACING", "BUTCHER"],
-    color: "#ba81c5",
-    textColor: "#3d1a47",
+    category: '___ PAPER',
+    categoryRu: '___ БУМАГА',
+    words: ['WRAPPING', 'SAND', 'TRACING', 'BUTCHER'],
+    color: '#ba81c5',
+    textColor: '#3d1a47',
     difficulty: 4,
   },
 ];
 
-// Initial arrangement - words from same group are NOT in the same row
 const INITIAL_WORDS = [
-  "WAFFLE", "CROWN", "RAPID", "SAND",
-  "TOAST", "HELMET", "SWIFT", "TRACING",
-  "CEREAL", "TURBAN", "FLEET", "WRAPPING",
-  "YOGURT", "BERET", "HASTY", "BUTCHER",
+  'WAFFLE', 'CROWN', 'RAPID', 'SAND',
+  'TOAST', 'HELMET', 'SWIFT', 'TRACING',
+  'CEREAL', 'TURBAN', 'FLEET', 'WRAPPING',
+  'YOGURT', 'BERET', 'HASTY', 'BUTCHER',
 ];
-
-interface Review {
-  id: string;
-  name: string;
-  rating: number;
-  comment: string;
-  date: string;
-}
-
-const STORAGE_KEY = 'connections_reviews';
-
-function getReviews(): Review[] {
-  try {
-    const data = localStorage.getItem(STORAGE_KEY);
-    return data ? JSON.parse(data) : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveReview(review: Review) {
-  const reviews = getReviews();
-  reviews.unshift(review);
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(reviews));
-}
 
 function getGroupForWord(word: string) {
   for (const group of GROUPS) {
-    if (group.words.includes(word)) {
-      return group;
-    }
+    if (group.words.includes(word)) return group;
   }
   return null;
 }
@@ -83,7 +168,25 @@ function shuffleArray<T>(array: T[]): T[] {
   return shuffled;
 }
 
+function getCategoryName(group: typeof GROUPS[0], lang: Lang) {
+  return lang === 'ru' ? group.categoryRu : group.category;
+}
+
+// ============ MAIN APP ============
 function App() {
+  const [lang, setLang] = useState<Lang>('en');
+  const t = translations[lang] as TranslationShape;
+
+  return (
+    <LangContext.Provider value={{ lang, setLang, t }}>
+      <GameContent />
+    </LangContext.Provider>
+  );
+}
+
+function GameContent() {
+  const { lang, setLang, t } = useLang();
+
   const [words, setWords] = useState<string[]>(INITIAL_WORDS);
   const [selected, setSelected] = useState<string[]>([]);
   const [solvedGroups, setSolvedGroups] = useState<typeof GROUPS>([]);
@@ -102,75 +205,57 @@ function App() {
     (w) => !solvedGroups.some((g) => g.words.includes(w))
   );
 
-  const handleWordClick = useCallback((word: string) => {
-    if (gameOver || gameWon) return;
-    if (solvedGroups.some((g) => g.words.includes(word))) return;
-
-    setSelected((prev) => {
-      if (prev.includes(word)) {
-        return prev.filter((w) => w !== word);
-      }
-      if (prev.length >= 4) return prev;
-      return [...prev, word];
-    });
-    setShowOneAway(false);
-  }, [gameOver, gameWon, solvedGroups]);
+  const handleWordClick = useCallback(
+    (word: string) => {
+      if (gameOver || gameWon) return;
+      if (solvedGroups.some((g) => g.words.includes(word))) return;
+      setSelected((prev) => {
+        if (prev.includes(word)) return prev.filter((w) => w !== word);
+        if (prev.length >= 4) return prev;
+        return [...prev, word];
+      });
+      setShowOneAway(false);
+    },
+    [gameOver, gameWon, solvedGroups]
+  );
 
   const handleShuffle = useCallback(() => {
-    const activeWords = words.filter(
-      (w) => !solvedGroups.some((g) => g.words.includes(w))
-    );
-    const solvedWords = words.filter((w) =>
-      solvedGroups.some((g) => g.words.includes(w))
-    );
-    setWords([...shuffleArray(activeWords), ...solvedWords]);
+    const active = words.filter((w) => !solvedGroups.some((g) => g.words.includes(w)));
+    const solved = words.filter((w) => solvedGroups.some((g) => g.words.includes(w)));
+    setWords([...shuffleArray(active), ...solved]);
   }, [words, solvedGroups]);
 
   const handleSubmit = useCallback(() => {
     if (selected.length !== 4) return;
-
     const groups = selected.map(getGroupForWord);
-    const allSameGroup = groups.every(
-      (g) => g !== null && g.category === groups[0]?.category
-    );
+    const allSame = groups.every((g) => g !== null && g.category === groups[0]?.category);
 
-    if (allSameGroup && groups[0]) {
-      const solvedGroup = groups[0];
-      setCelebrateGroup(solvedGroup.category);
-
+    if (allSame && groups[0]) {
+      const sg = groups[0];
+      setCelebrateGroup(sg.category);
       setTimeout(() => {
-        setSolvedGroups((prev) => [...prev, solvedGroup]);
+        setSolvedGroups((prev) => [...prev, sg]);
         setSelected([]);
         setCelebrateGroup(null);
-
         if (solvedGroups.length + 1 === 4) {
           setGameWon(true);
           setShowConfetti(true);
         }
       }, 1000);
     } else {
-      const groupCounts: Record<string, number> = {};
-      groups.forEach((g) => {
-        if (g) {
-          groupCounts[g.category] = (groupCounts[g.category] || 0) + 1;
-        }
-      });
-      const maxCount = Math.max(...Object.values(groupCounts));
-
-      if (maxCount === 3) {
+      const counts: Record<string, number> = {};
+      groups.forEach((g) => { if (g) counts[g.category] = (counts[g.category] || 0) + 1; });
+      const max = Math.max(...Object.values(counts));
+      if (max === 3) {
         setShowOneAway(true);
         setTimeout(() => setShowOneAway(false), 2000);
       }
-
       setShakeWords([...selected]);
       setTimeout(() => setShakeWords([]), 600);
-
       setMistakes((prev) => {
-        const newMistakes = prev + 1;
-        if (newMistakes >= 4) {
-          setTimeout(() => setGameOver(true), 800);
-        }
-        return newMistakes;
+        const n = prev + 1;
+        if (n >= 4) setTimeout(() => setGameOver(true), 800);
+        return n;
       });
       setSelected([]);
     }
@@ -195,13 +280,11 @@ function App() {
   }, []);
 
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Enter' && selected.length === 4) {
-        handleSubmit();
-      }
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Enter' && selected.length === 4) handleSubmit();
     };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
   }, [handleSubmit, selected.length]);
 
   const mistakesLeft = 4 - mistakes;
@@ -210,16 +293,23 @@ function App() {
     <div className="min-h-screen bg-white flex flex-col items-center py-4 px-4 sm:py-8">
       {showConfetti && <Confetti />}
 
-      {/* Header */}
       <div className="w-full max-w-[480px]">
-        <div className="border-b border-gray-200 pb-3 mb-6">
-          <h1 className="text-[32px] font-black text-center text-gray-900 tracking-tight" style={{fontFamily: "'Georgia', serif"}}>
-            Connections
+        {/* Header with language switcher */}
+        <div className="flex items-center justify-between mb-2">
+          <div className="w-20" /> {/* spacer */}
+          <h1
+            className="text-[28px] sm:text-[32px] font-black text-gray-900 tracking-tight"
+            style={{ fontFamily: "'Georgia', serif" }}
+          >
+            {t.title}
           </h1>
+          <LangSwitcher />
         </div>
 
+        <div className="border-b border-gray-200 pb-3 mb-6" />
+
         <p className="text-center text-gray-700 text-[15px] mb-5 font-medium">
-          Create four groups of four!
+          {t.subtitle}
         </p>
 
         {/* Solved groups */}
@@ -231,10 +321,10 @@ function App() {
               style={{ backgroundColor: group.color }}
             >
               <div className="font-bold text-[13px] tracking-wide" style={{ color: group.textColor }}>
-                {group.category}
+                {getCategoryName(group, lang)}
               </div>
               <div className="text-[13px] mt-1 opacity-75" style={{ color: group.textColor }}>
-                {group.words.join(", ")}
+                {group.words.join(', ')}
               </div>
             </div>
           ))}
@@ -246,8 +336,8 @@ function App() {
             {remainingWords.map((word, index) => {
               const isSelected = selected.includes(word);
               const isShaking = shakeWords.includes(word);
-              const isCelebrating = celebrateGroup && getGroupForWord(word)?.category === celebrateGroup;
-
+              const isCelebrating =
+                celebrateGroup && getGroupForWord(word)?.category === celebrateGroup;
               return (
                 <button
                   key={`${word}-${index}`}
@@ -274,10 +364,10 @@ function App() {
           </div>
         )}
 
-        {/* Mistakes indicator */}
+        {/* Mistakes */}
         {!gameOver && !gameWon && (
           <div className="flex items-center justify-center gap-1.5 mb-5">
-            <span className="text-[13px] text-gray-500 mr-1">Mistakes remaining:</span>
+            <span className="text-[13px] text-gray-500 mr-1">{t.mistakesRemaining}</span>
             {[...Array(4)].map((_, i) => (
               <div
                 key={i}
@@ -289,11 +379,11 @@ function App() {
           </div>
         )}
 
-        {/* One away message */}
+        {/* One away */}
         {showOneAway && (
           <div className="text-center mb-3 animate-fade-in">
             <span className="inline-block bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-1.5 rounded-full text-[13px] font-semibold">
-              One away!
+              {t.oneAway}
             </span>
           </div>
         )}
@@ -301,52 +391,37 @@ function App() {
         {/* Action buttons */}
         {!gameOver && !gameWon && (
           <div className="flex gap-2 justify-center mb-3 flex-wrap">
-            <button
-              onClick={handleShuffle}
-              className="px-5 py-2.5 border-2 border-gray-800 text-gray-800 rounded-full font-bold text-[13px] hover:bg-gray-50 transition-colors uppercase tracking-wide"
-            >
-              Shuffle
+            <button onClick={handleShuffle} className="game-btn-outline">
+              {t.shuffle}
             </button>
-            <button
-              onClick={handleDeselectAll}
-              className="px-5 py-2.5 border-2 border-gray-800 text-gray-800 rounded-full font-bold text-[13px] hover:bg-gray-50 transition-colors uppercase tracking-wide"
-            >
-              Deselect All
+            <button onClick={handleDeselectAll} className="game-btn-outline">
+              {t.deselectAll}
             </button>
             <button
               onClick={handleSubmit}
               disabled={selected.length !== 4}
-              className={`px-5 py-2.5 rounded-full font-bold text-[13px] transition-all uppercase tracking-wide ${
-                selected.length === 4
-                  ? 'bg-gray-800 text-white hover:bg-gray-700 shadow-md cursor-pointer'
-                  : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+              className={`game-btn-submit ${
+                selected.length === 4 ? 'game-btn-submit-active' : 'game-btn-submit-disabled'
               }`}
             >
-              Submit
+              {t.submit}
             </button>
           </div>
         )}
 
         {/* Review buttons */}
         <div className="flex gap-3 justify-center mb-8 mt-2">
-          <button
-            onClick={() => setShowReviewModal(true)}
-            className="flex items-center gap-2 px-5 py-2.5 bg-purple-600 text-white rounded-full font-bold text-[13px] hover:bg-purple-700 transition-colors shadow-md"
-          >
+          <button onClick={() => setShowReviewModal(true)} className="review-btn-primary">
             <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 20h9"/>
-              <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+              <path d="M12 20h9" /><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
             </svg>
-            Leave a Review
+            {t.leaveReview}
           </button>
-          <button
-            onClick={() => setShowReviewsList(true)}
-            className="flex items-center gap-2 px-5 py-2.5 border-2 border-purple-600 text-purple-600 rounded-full font-bold text-[13px] hover:bg-purple-50 transition-colors"
-          >
+          <button onClick={() => setShowReviewsList(true)} className="review-btn-secondary">
             <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
             </svg>
-            View Reviews
+            {t.viewReviews}
           </button>
         </div>
 
@@ -354,38 +429,27 @@ function App() {
         {gameOver && (
           <div className="text-center py-6 animate-fade-in">
             <div className="text-5xl mb-4">😔</div>
-            <h2 className="text-2xl font-black text-gray-900 mb-2" style={{fontFamily: "'Georgia', serif"}}>
-              Next time!
+            <h2 className="text-2xl font-black text-gray-900 mb-2" style={{ fontFamily: "'Georgia', serif" }}>
+              {t.nextTime}
             </h2>
             <p className="text-gray-500 mb-6 text-[14px]">
-              You had {4 - solvedGroups.length} group{4 - solvedGroups.length !== 1 ? 's' : ''} left to find.
+              {t.groupsLeft(4 - solvedGroups.length)}
             </p>
-            
             <div className="space-y-2 mb-8">
-              {GROUPS.filter(
-                (g) => !solvedGroups.some((s) => s.category === g.category)
-              ).map((group) => (
-                <div
-                  key={group.category}
-                  className="rounded-xl px-4 py-3 text-center"
-                  style={{ backgroundColor: group.color }}
-                >
-                  <div className="font-bold text-[13px] tracking-wide" style={{ color: group.textColor }}>
-                    {group.category}
+              {GROUPS.filter((g) => !solvedGroups.some((s) => s.category === g.category)).map(
+                (group) => (
+                  <div key={group.category} className="rounded-xl px-4 py-3 text-center" style={{ backgroundColor: group.color }}>
+                    <div className="font-bold text-[13px] tracking-wide" style={{ color: group.textColor }}>
+                      {getCategoryName(group, lang)}
+                    </div>
+                    <div className="text-[13px] mt-1 opacity-75" style={{ color: group.textColor }}>
+                      {group.words.join(', ')}
+                    </div>
                   </div>
-                  <div className="text-[13px] mt-1 opacity-75" style={{ color: group.textColor }}>
-                    {group.words.join(", ")}
-                  </div>
-                </div>
-              ))}
+                )
+              )}
             </div>
-
-            <button
-              onClick={handleRestart}
-              className="px-8 py-3 bg-gray-800 text-white rounded-full font-bold text-[14px] hover:bg-gray-700 transition-colors shadow-lg"
-            >
-              Play Again
-            </button>
+            <button onClick={handleRestart} className="game-btn-dark">{t.playAgain}</button>
           </div>
         )}
 
@@ -393,315 +457,200 @@ function App() {
         {gameWon && (
           <div className="text-center py-6 animate-fade-in">
             <div className="text-5xl mb-4">🎉</div>
-            <h2 className="text-2xl font-black text-gray-900 mb-2" style={{fontFamily: "'Georgia', serif"}}>
-              Brilliant!
+            <h2 className="text-2xl font-black text-gray-900 mb-2" style={{ fontFamily: "'Georgia', serif" }}>
+              {t.brilliant}
             </h2>
-            <p className="text-gray-500 mb-1 text-[14px]">
-              You found all connections!
-            </p>
+            <p className="text-gray-500 mb-1 text-[14px]">{t.foundAll}</p>
             <p className="text-gray-400 text-[13px] mb-8">
-              {mistakes === 0 ? 'Perfect — no mistakes!' : `${mistakes} mistake${mistakes !== 1 ? 's' : ''}`}
+              {mistakes === 0 ? t.perfect : t.mistakes(mistakes)}
             </p>
-            <button
-              onClick={handleRestart}
-              className="px-8 py-3 bg-gray-800 text-white rounded-full font-bold text-[14px] hover:bg-gray-700 transition-colors shadow-lg"
-            >
-              Play Again
-            </button>
+            <button onClick={handleRestart} className="game-btn-dark">{t.playAgain}</button>
           </div>
         )}
       </div>
 
-      {/* Review Form Modal */}
-      {showReviewModal && (
-        <ReviewFormModal onClose={() => setShowReviewModal(false)} />
-      )}
-
-      {/* Reviews List Modal */}
-      {showReviewsList && (
-        <ReviewsListModal onClose={() => setShowReviewsList(false)} />
-      )}
+      {/* Modals */}
+      {showReviewModal && <ReviewModal onClose={() => setShowReviewModal(false)} />}
+      {showReviewsList && <ReviewsModal onClose={() => setShowReviewsList(false)} />}
     </div>
   );
 }
 
-// Review Form Modal (Google Forms style)
-function ReviewFormModal({ onClose }: { onClose: () => void }) {
-  const [name, setName] = useState('');
-  const [rating, setRating] = useState(0);
-  const [hoverRating, setHoverRating] = useState(0);
-  const [comment, setComment] = useState('');
-  const [submitted, setSubmitted] = useState(false);
-  const [error, setError] = useState('');
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name.trim()) {
-      setError('Please enter your name');
-      return;
-    }
-    if (rating === 0) {
-      setError('Please select a rating');
-      return;
-    }
-    if (!comment.trim()) {
-      setError('Please write a comment');
-      return;
-    }
-    setError('');
-
-    const review: Review = {
-      id: Date.now().toString(),
-      name: name.trim(),
-      rating,
-      comment: comment.trim(),
-      date: new Date().toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-      }),
-    };
-
-    saveReview(review);
-    setSubmitted(true);
-  };
-
-  if (submitted) {
-    return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 animate-fade-in" onClick={onClose}>
-        <div className="bg-white rounded-2xl p-8 max-w-md w-full text-center shadow-2xl" onClick={e => e.stopPropagation()}>
-          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 text-green-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="20 6 9 17 4 12"/>
-            </svg>
-          </div>
-          <h3 className="text-xl font-bold text-gray-900 mb-2">Thank you!</h3>
-          <p className="text-gray-500 text-[14px] mb-6">Your review has been submitted successfully.</p>
-          <button
-            onClick={onClose}
-            className="px-6 py-2.5 bg-purple-600 text-white rounded-full font-bold text-[13px] hover:bg-purple-700 transition-colors"
-          >
-            Close
-          </button>
-        </div>
-      </div>
-    );
-  }
-
+// ============ LANGUAGE SWITCHER ============
+function LangSwitcher() {
+  const { lang, setLang } = useLang();
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 animate-fade-in" onClick={onClose}>
-      <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
-        {/* Google Forms style header */}
-        <div className="bg-purple-600 px-6 py-5 border-t-4 border-purple-800 rounded-t-2xl">
-          <h2 className="text-white text-lg font-bold flex items-center gap-2">
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-              <polyline points="14 2 14 8 20 8"/>
-              <line x1="16" y1="13" x2="8" y2="13"/>
-              <line x1="16" y1="17" x2="8" y2="17"/>
-              <polyline points="10 9 9 9 8 9"/>
-            </svg>
-            Connections — Review
-          </h2>
-          <p className="text-purple-100 text-[13px] mt-1">Share your experience with the game</p>
-        </div>
-
-        <form onSubmit={handleSubmit} className="p-6 space-y-5">
-          {/* Name field */}
-          <div>
-            <label className="block text-[14px] font-medium text-gray-700 mb-1.5">
-              Your Name <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Enter your name"
-              className="w-full px-4 py-2.5 border-b-2 border-gray-300 focus:border-purple-500 outline-none text-[14px] transition-colors bg-transparent"
-            />
-          </div>
-
-          {/* Rating */}
-          <div>
-            <label className="block text-[14px] font-medium text-gray-700 mb-2">
-              Rating <span className="text-red-500">*</span>
-            </label>
-            <div className="flex gap-1">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <button
-                  key={star}
-                  type="button"
-                  onClick={() => setRating(star)}
-                  onMouseEnter={() => setHoverRating(star)}
-                  onMouseLeave={() => setHoverRating(0)}
-                  className="p-1 transition-transform hover:scale-110"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className={`w-8 h-8 transition-colors ${
-                      star <= (hoverRating || rating)
-                        ? 'text-yellow-400 fill-yellow-400'
-                        : 'text-gray-300'
-                    }`}
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                  >
-                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-                  </svg>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Comment */}
-          <div>
-            <label className="block text-[14px] font-medium text-gray-700 mb-1.5">
-              Your Review <span className="text-red-500">*</span>
-            </label>
-            <textarea
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-              placeholder="Tell us what you think about the game..."
-              rows={4}
-              className="w-full px-4 py-2.5 border-b-2 border-gray-300 focus:border-purple-500 outline-none text-[14px] transition-colors resize-none bg-transparent"
-            />
-          </div>
-
-          {/* Error */}
-          {error && (
-            <div className="flex items-center gap-2 text-red-600 text-[13px] bg-red-50 px-3 py-2 rounded-lg">
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10"/>
-                <line x1="12" y1="8" x2="12" y2="12"/>
-                <line x1="12" y1="16" x2="12.01" y2="16"/>
-              </svg>
-              {error}
-            </div>
-          )}
-
-          {/* Buttons */}
-          <div className="flex gap-3 pt-2">
-            <button
-              type="submit"
-              className="px-6 py-2.5 bg-purple-600 text-white rounded-full font-bold text-[13px] hover:bg-purple-700 transition-colors shadow-md"
-            >
-              Submit Review
-            </button>
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-6 py-2.5 border-2 border-gray-300 text-gray-600 rounded-full font-bold text-[13px] hover:bg-gray-50 transition-colors"
-            >
-              Cancel
-            </button>
-          </div>
-        </form>
-      </div>
+    <div className="flex items-center bg-gray-100 rounded-full p-0.5 w-20">
+      <button
+        onClick={() => setLang('en')}
+        className={`flex-1 text-[12px] font-bold py-1.5 rounded-full transition-all ${
+          lang === 'en' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400 hover:text-gray-600'
+        }`}
+      >
+        EN
+      </button>
+      <button
+        onClick={() => setLang('ru')}
+        className={`flex-1 text-[12px] font-bold py-1.5 rounded-full transition-all ${
+          lang === 'ru' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400 hover:text-gray-600'
+        }`}
+      >
+        RU
+      </button>
     </div>
   );
 }
 
-// Reviews List Modal
-function ReviewsListModal({ onClose }: { onClose: () => void }) {
-  const [reviews, setReviews] = useState<Review[]>([]);
-
-  useEffect(() => {
-    setReviews(getReviews());
-  }, []);
+// ============ REVIEW MODAL (Google Forms embed) ============
+function ReviewModal({ onClose }: { onClose: () => void }) {
+  const { t } = useLang();
+  const [iframeLoaded, setIframeLoaded] = useState(false);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 animate-fade-in" onClick={onClose}>
-      <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl overflow-hidden max-h-[80vh] flex flex-col" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/50 animate-fade-in" onClick={onClose}>
+      <div
+        className="bg-white rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col"
+        style={{ maxHeight: '90vh', height: '85vh' }}
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
-        <div className="bg-purple-600 px-6 py-5 border-t-4 border-purple-800 flex-shrink-0">
+        <div className="bg-purple-600 px-5 py-4 border-t-4 border-purple-800 flex-shrink-0">
           <div className="flex items-center justify-between">
-            <h2 className="text-white text-lg font-bold flex items-center gap-2">
+            <h2 className="text-white text-base font-bold flex items-center gap-2">
               <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                <polyline points="14 2 14 8 20 8" />
+                <line x1="16" y1="13" x2="8" y2="13" />
+                <line x1="16" y1="17" x2="8" y2="17" />
               </svg>
-              Reviews ({reviews.length})
+              {t.leaveReview}
             </h2>
-            <button
-              onClick={onClose}
-              className="text-white/80 hover:text-white transition-colors"
-            >
+            <button onClick={onClose} className="text-white/80 hover:text-white transition-colors">
               <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="18" y1="6" x2="6" y2="18"/>
-                <line x1="6" y1="6" x2="18" y2="18"/>
+                <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
               </svg>
             </button>
           </div>
+          <p className="text-purple-100 text-[12px] mt-1">{t.reviewNote}</p>
         </div>
 
-        {/* Reviews list */}
-        <div className="overflow-y-auto flex-1 p-4 space-y-3">
-          {reviews.length === 0 ? (
-            <div className="text-center py-10">
-              <div className="text-4xl mb-3">💬</div>
-              <p className="text-gray-500 text-[14px]">No reviews yet.</p>
-              <p className="text-gray-400 text-[13px] mt-1">Be the first to leave a review!</p>
-            </div>
-          ) : (
-            reviews.map((review) => (
-              <div
-                key={review.id}
-                className="border border-gray-200 rounded-xl p-4 hover:shadow-md transition-shadow"
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
-                      <span className="text-purple-700 font-bold text-[12px]">
-                        {review.name.charAt(0).toUpperCase()}
-                      </span>
-                    </div>
-                    <span className="font-semibold text-gray-800 text-[14px]">
-                      {review.name}
-                    </span>
-                  </div>
-                  <span className="text-gray-400 text-[11px]">{review.date}</span>
-                </div>
-                <div className="flex gap-0.5 mb-2">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <svg
-                      key={star}
-                      xmlns="http://www.w3.org/2000/svg"
-                      className={`w-4 h-4 ${
-                        star <= review.rating
-                          ? 'text-yellow-400 fill-yellow-400'
-                          : 'text-gray-200'
-                      }`}
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      strokeWidth="1.5"
-                    >
-                      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-                    </svg>
-                  ))}
-                </div>
-                <p className="text-gray-600 text-[13px] leading-relaxed">
-                  {review.comment}
-                </p>
+        {/* Google Form iframe */}
+        <div className="flex-1 relative bg-gray-50">
+          {!iframeLoaded && (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="text-center">
+                <div className="w-8 h-8 border-3 border-purple-200 border-t-purple-600 rounded-full animate-spin mx-auto mb-3" />
+                <p className="text-gray-400 text-[13px]">Loading form...</p>
               </div>
-            ))
+            </div>
           )}
+          <iframe
+            src={GOOGLE_FORM_EMBEDDED}
+            className="w-full h-full border-0"
+            onLoad={() => setIframeLoaded(true)}
+            title="Review Form"
+          />
         </div>
 
         {/* Footer */}
-        <div className="border-t border-gray-100 px-6 py-3 flex-shrink-0">
-          <button
-            onClick={onClose}
-            className="w-full px-6 py-2.5 bg-purple-600 text-white rounded-full font-bold text-[13px] hover:bg-purple-700 transition-colors"
+        <div className="border-t border-gray-100 px-5 py-3 flex-shrink-0 flex items-center justify-between">
+          <span className="text-gray-400 text-[11px] flex items-center gap-1">
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="12" cy="12" r="10" /><path d="M12 16v-4" /><path d="M12 8h.01" />
+            </svg>
+            {t.poweredBy}
+          </span>
+          <a
+            href={GOOGLE_FORM_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-purple-600 text-[12px] font-semibold hover:text-purple-700 flex items-center gap-1"
           >
-            Close
-          </button>
+            {t.openForm}
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+              <polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" />
+            </svg>
+          </a>
         </div>
       </div>
     </div>
   );
 }
 
-// Simple confetti component
+// ============ REVIEWS LIST MODAL ============
+function ReviewsModal({ onClose }: { onClose: () => void }) {
+  const { t } = useLang();
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 animate-fade-in" onClick={onClose}>
+      <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
+        {/* Header */}
+        <div className="bg-purple-600 px-6 py-5 border-t-4 border-purple-800">
+          <div className="flex items-center justify-between">
+            <h2 className="text-white text-lg font-bold flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+              </svg>
+              {t.reviewsTitle}
+            </h2>
+            <button onClick={onClose} className="text-white/80 hover:text-white transition-colors">
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="p-6">
+          <div className="text-center py-6">
+            <div className="w-16 h-16 bg-purple-50 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 text-purple-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                <polyline points="14 2 14 8 20 8" />
+                <line x1="16" y1="13" x2="8" y2="13" />
+                <line x1="16" y1="17" x2="8" y2="17" />
+              </svg>
+            </div>
+            <p className="text-gray-600 text-[14px] mb-2 leading-relaxed">
+              {t.viewNote}
+            </p>
+            <p className="text-gray-400 text-[12px] flex items-center justify-center gap-1 mb-6">
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="12" r="10" /><path d="M12 16v-4" /><path d="M12 8h.01" />
+              </svg>
+              {t.poweredBy}
+            </p>
+          </div>
+
+          <div className="space-y-3">
+            <a
+              href={GOOGLE_FORM_RESPONSES}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2 w-full px-6 py-3 bg-purple-600 text-white rounded-full font-bold text-[13px] hover:bg-purple-700 transition-colors shadow-md"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                <circle cx="12" cy="12" r="3" />
+              </svg>
+              {t.viewResponses}
+            </a>
+            <button
+              onClick={onClose}
+              className="w-full px-6 py-3 border-2 border-gray-200 text-gray-600 rounded-full font-bold text-[13px] hover:bg-gray-50 transition-colors"
+            >
+              {t.close}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============ CONFETTI ============
 function Confetti() {
   const colors = ['#f9df6d', '#a0c35a', '#b0c4ef', '#ba81c5', '#ff6b6b', '#4ecdc4'];
   const particles = Array.from({ length: 50 }, (_, i) => ({
