@@ -20,15 +20,9 @@ const translations = {
     mistakes: (n: number) => `${n} mistake${n !== 1 ? 's' : ''}`,
     playAgain: 'Play Again',
     leaveReview: 'Leave a Review',
-    viewReviews: 'View Reviews',
-    reviewsTitle: 'Reviews',
-    noReviews: 'No reviews yet.',
-    beFirst: 'Be the first to leave a review!',
     close: 'Close',
     openForm: 'Open in New Tab',
     reviewNote: 'Your review will be sent via Google Forms',
-    viewNote: 'Reviews are collected via Google Forms. Click below to see all submitted reviews.',
-    viewResponses: 'View All Responses',
     poweredBy: 'Powered by Google Forms',
   },
   ru: {
@@ -47,15 +41,9 @@ const translations = {
     mistakes: (n: number) => `${n} ${n === 1 ? 'ошибка' : n < 5 ? 'ошибки' : 'ошибок'}`,
     playAgain: 'Играть снова',
     leaveReview: 'Оставить отзыв',
-    viewReviews: 'Смотреть отзывы',
-    reviewsTitle: 'Отзывы',
-    noReviews: 'Пока нет отзывов.',
-    beFirst: 'Оставьте первый отзыв!',
     close: 'Закрыть',
     openForm: 'Открыть в новой вкладке',
     reviewNote: 'Ваш отзыв будет отправлен через Google Формы',
-    viewNote: 'Отзывы собираются через Google Формы. Нажмите ниже, чтобы увидеть все отправленные отзывы.',
-    viewResponses: 'Посмотреть все ответы',
     poweredBy: 'Работает на Google Формы',
   },
 } as const;
@@ -76,15 +64,9 @@ interface TranslationShape {
   mistakes: (n: number) => string;
   playAgain: string;
   leaveReview: string;
-  viewReviews: string;
-  reviewsTitle: string;
-  noReviews: string;
-  beFirst: string;
   close: string;
   openForm: string;
   reviewNote: string;
-  viewNote: string;
-  viewResponses: string;
   poweredBy: string;
 }
 
@@ -92,13 +74,17 @@ const LangContext = createContext<{
   lang: Lang;
   setLang: (l: Lang) => void;
   t: TranslationShape;
+  isDark: boolean;
+  toggleTheme: () => void;
 }>({
   lang: 'en',
   setLang: () => {},
   t: translations.en as TranslationShape,
+  isDark: false,
+  toggleTheme: () => {},
 });
 
-function useLang() {
+function useApp() {
   return useContext(LangContext);
 }
 
@@ -106,14 +92,19 @@ function useLang() {
 const GOOGLE_FORM_URL =
   'https://docs.google.com/forms/d/e/1FAIpQLSftra5aBoeRjT_RFEm5kz-L7wVGLsOpTCp8RGCWr4hP-hSxYg/viewform';
 const GOOGLE_FORM_EMBEDDED = GOOGLE_FORM_URL + '?embedded=true';
-const GOOGLE_FORM_RESPONSES =
-  'https://docs.google.com/forms/d/e/1FAIpQLSftra5aBoeRjT_RFEm5kz-L7wVGLsOpTCp8RGCWr4hP-hSxYg/viewanalytics';
 
 // ============ GAME DATA ============
-const GROUPS = [
+interface Group {
+  category: string;
+  words: string[];
+  color: string;
+  textColor: string;
+  difficulty: number;
+}
+
+const GROUPS_EN: Group[] = [
   {
     category: 'BREAKFAST FOODS',
-    categoryRu: 'ЕДА НА ЗАВТРАК',
     words: ['WAFFLE', 'TOAST', 'CEREAL', 'YOGURT'],
     color: '#f9df6d',
     textColor: '#5c4b00',
@@ -121,7 +112,6 @@ const GROUPS = [
   },
   {
     category: 'THINGS YOU WEAR ON YOUR HEAD',
-    categoryRu: 'НОСЯТ НА ГОЛОВЕ',
     words: ['CROWN', 'HELMET', 'TURBAN', 'BERET'],
     color: '#a0c35a',
     textColor: '#2d4a0a',
@@ -129,7 +119,6 @@ const GROUPS = [
   },
   {
     category: "WORDS MEANING 'FAST'",
-    categoryRu: 'СИНОНИМЫ «БЫСТРЫЙ»',
     words: ['RAPID', 'SWIFT', 'FLEET', 'HASTY'],
     color: '#b0c4ef',
     textColor: '#1a2f5c',
@@ -137,7 +126,6 @@ const GROUPS = [
   },
   {
     category: '___ PAPER',
-    categoryRu: '___ БУМАГА',
     words: ['WRAPPING', 'SAND', 'TRACING', 'BUTCHER'],
     color: '#ba81c5',
     textColor: '#3d1a47',
@@ -145,15 +133,59 @@ const GROUPS = [
   },
 ];
 
-const INITIAL_WORDS = [
+const INITIAL_WORDS_EN = [
   'WAFFLE', 'CROWN', 'RAPID', 'SAND',
   'TOAST', 'HELMET', 'SWIFT', 'TRACING',
   'CEREAL', 'TURBAN', 'FLEET', 'WRAPPING',
   'YOGURT', 'BERET', 'HASTY', 'BUTCHER',
 ];
 
-function getGroupForWord(word: string) {
-  for (const group of GROUPS) {
+const GROUPS_RU: Group[] = [
+  {
+    category: 'ФРУКТЫ',
+    words: ['ЯБЛОКО', 'БАНАН', 'АПЕЛЬСИН', 'ГРУША'],
+    color: '#f9df6d',
+    textColor: '#5c4b00',
+    difficulty: 1,
+  },
+  {
+    category: 'ПЛАНЕТЫ СОЛНЕЧНОЙ СИСТЕМЫ',
+    words: ['МАРС', 'ВЕНЕРА', 'ЮПИТЕР', 'САТУРН'],
+    color: '#a0c35a',
+    textColor: '#2d4a0a',
+    difficulty: 2,
+  },
+  {
+    category: 'СИНОНИМЫ СЛОВА «БЫСТРЫЙ»',
+    words: ['СКОРЫЙ', 'СТРЕМИТЕЛЬНЫЙ', 'БОРЗОЙ', 'ШУСТРЫЙ'],
+    color: '#b0c4ef',
+    textColor: '#1a2f5c',
+    difficulty: 3,
+  },
+  {
+    category: '___ ДОМ',
+    words: ['СТЕКЛЯННЫЙ', 'КУКОЛЬНЫЙ', 'ДЕРЕВЕНСКИЙ', 'РОДНОЙ'],
+    color: '#ba81c5',
+    textColor: '#3d1a47',
+    difficulty: 4,
+  },
+];
+
+const INITIAL_WORDS_RU = [
+  'ЯБЛОКО', 'МАРС', 'СКОРЫЙ', 'СТЕКЛЯННЫЙ',
+  'БАНАН', 'ВЕНЕРА', 'СТРЕМИТЕЛЬНЫЙ', 'КУКОЛЬНЫЙ',
+  'АПЕЛЬСИН', 'ЮПИТЕР', 'БОРЗОЙ', 'ДЕРЕВЕНСКИЙ',
+  'ГРУША', 'САТУРН', 'ШУСТРЫЙ', 'РОДНОЙ',
+];
+
+function getGameForLang(lang: Lang) {
+  return lang === 'ru'
+    ? { groups: GROUPS_RU, initialWords: INITIAL_WORDS_RU }
+    : { groups: GROUPS_EN, initialWords: INITIAL_WORDS_EN };
+}
+
+function getGroupForWord(word: string, groups: Group[]) {
+  for (const group of groups) {
     if (group.words.includes(word)) return group;
   }
   return null;
@@ -168,28 +200,53 @@ function shuffleArray<T>(array: T[]): T[] {
   return shuffled;
 }
 
-function getCategoryName(group: typeof GROUPS[0], lang: Lang) {
-  return lang === 'ru' ? group.categoryRu : group.category;
+// ============ THEME ============
+function getInitialTheme(): boolean {
+  try {
+    const saved = localStorage.getItem('connections_theme');
+    if (saved) return saved === 'dark';
+    return window.matchMedia('(prefers-color-scheme: dark)').matches;
+  } catch {
+    return false;
+  }
 }
 
 // ============ MAIN APP ============
 function App() {
   const [lang, setLang] = useState<Lang>('en');
+  const [isDark, setIsDark] = useState(getInitialTheme);
   const t = translations[lang] as TranslationShape;
 
+  const toggleTheme = useCallback(() => {
+    setIsDark((prev) => {
+      const next = !prev;
+      localStorage.setItem('connections_theme', next ? 'dark' : 'light');
+      return next;
+    });
+  }, []);
+
+  useEffect(() => {
+    if (isDark) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [isDark]);
+
   return (
-    <LangContext.Provider value={{ lang, setLang, t }}>
+    <LangContext.Provider value={{ lang, setLang, t, isDark, toggleTheme }}>
       <GameContent />
     </LangContext.Provider>
   );
 }
 
 function GameContent() {
-  const { lang, setLang, t } = useLang();
+  const { lang, setLang, t, isDark, toggleTheme } = useApp();
+  const { groups: currentGroups, initialWords } = getGameForLang(lang);
 
-  const [words, setWords] = useState<string[]>(INITIAL_WORDS);
+  const [words, setWords] = useState<string[]>(initialWords);
   const [selected, setSelected] = useState<string[]>([]);
-  const [solvedGroups, setSolvedGroups] = useState<typeof GROUPS>([]);
+  const [solvedGroups, setSolvedGroups] = useState<Group[]>([]);
   const [mistakes, setMistakes] = useState(0);
   const [gameOver, setGameOver] = useState(false);
   const [gameWon, setGameWon] = useState(false);
@@ -198,8 +255,22 @@ function GameContent() {
   const [celebrateGroup, setCelebrateGroup] = useState<string | null>(null);
   const [showConfetti, setShowConfetti] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
-  const [showReviewsList, setShowReviewsList] = useState(false);
   const gridRef = useRef<HTMLDivElement>(null);
+
+  // Reset game when language changes
+  useEffect(() => {
+    const { initialWords: newWords } = getGameForLang(lang);
+    setWords(shuffleArray(newWords));
+    setSelected([]);
+    setSolvedGroups([]);
+    setMistakes(0);
+    setGameOver(false);
+    setGameWon(false);
+    setShakeWords([]);
+    setShowOneAway(false);
+    setCelebrateGroup(null);
+    setShowConfetti(false);
+  }, [lang]);
 
   const remainingWords = words.filter(
     (w) => !solvedGroups.some((g) => g.words.includes(w))
@@ -227,7 +298,7 @@ function GameContent() {
 
   const handleSubmit = useCallback(() => {
     if (selected.length !== 4) return;
-    const groups = selected.map(getGroupForWord);
+    const groups = selected.map((w) => getGroupForWord(w, currentGroups));
     const allSame = groups.every((g) => g !== null && g.category === groups[0]?.category);
 
     if (allSame && groups[0]) {
@@ -259,7 +330,7 @@ function GameContent() {
       });
       setSelected([]);
     }
-  }, [selected, solvedGroups]);
+  }, [selected, solvedGroups, currentGroups]);
 
   const handleDeselectAll = useCallback(() => {
     setSelected([]);
@@ -267,7 +338,8 @@ function GameContent() {
   }, []);
 
   const handleRestart = useCallback(() => {
-    setWords(shuffleArray(INITIAL_WORDS));
+    const { initialWords: newWords } = getGameForLang(lang);
+    setWords(shuffleArray(newWords));
     setSelected([]);
     setSolvedGroups([]);
     setMistakes(0);
@@ -277,7 +349,7 @@ function GameContent() {
     setShowOneAway(false);
     setCelebrateGroup(null);
     setShowConfetti(false);
-  }, []);
+  }, [lang]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -290,25 +362,25 @@ function GameContent() {
   const mistakesLeft = 4 - mistakes;
 
   return (
-    <div className="min-h-screen bg-white flex flex-col items-center py-4 px-4 sm:py-8">
+    <div className={`min-h-screen transition-colors duration-300 ${isDark ? 'bg-[#1a1a1a]' : 'bg-white'} flex flex-col items-center py-4 px-4 sm:py-8`}>
       {showConfetti && <Confetti />}
 
       <div className="w-full max-w-[480px]">
-        {/* Header with language switcher */}
-        <div className="flex items-center justify-between mb-2">
-          <div className="w-20" /> {/* spacer */}
+        {/* Header with language & theme switchers */}
+        <div className="flex items-center justify-between mb-2 gap-2">
+          <ThemeToggle isDark={isDark} toggleTheme={toggleTheme} />
           <h1
-            className="text-[28px] sm:text-[32px] font-black text-gray-900 tracking-tight"
+            className={`text-[28px] sm:text-[32px] font-black tracking-tight ${isDark ? 'text-white' : 'text-gray-900'}`}
             style={{ fontFamily: "'Georgia', serif" }}
           >
             {t.title}
           </h1>
-          <LangSwitcher />
+          <LangSwitcher lang={lang} setLang={setLang} />
         </div>
 
-        <div className="border-b border-gray-200 pb-3 mb-6" />
+        <div className={`border-b ${isDark ? 'border-gray-700' : 'border-gray-200'} pb-3 mb-6`} />
 
-        <p className="text-center text-gray-700 text-[15px] mb-5 font-medium">
+        <p className={`text-center text-[15px] mb-5 font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
           {t.subtitle}
         </p>
 
@@ -321,7 +393,7 @@ function GameContent() {
               style={{ backgroundColor: group.color }}
             >
               <div className="font-bold text-[13px] tracking-wide" style={{ color: group.textColor }}>
-                {getCategoryName(group, lang)}
+                {group.category}
               </div>
               <div className="text-[13px] mt-1 opacity-75" style={{ color: group.textColor }}>
                 {group.words.join(', ')}
@@ -337,7 +409,7 @@ function GameContent() {
               const isSelected = selected.includes(word);
               const isShaking = shakeWords.includes(word);
               const isCelebrating =
-                celebrateGroup && getGroupForWord(word)?.category === celebrateGroup;
+                celebrateGroup && getGroupForWord(word, currentGroups)?.category === celebrateGroup;
               return (
                 <button
                   key={`${word}-${index}`}
@@ -351,8 +423,12 @@ function GameContent() {
                     ${isShaking ? 'animate-shake' : ''}
                     ${
                       isSelected
-                        ? 'bg-gray-800 text-white shadow-lg scale-[0.97]'
-                        : 'bg-[#efefe6] text-gray-900 hover:bg-[#e5e5db] active:scale-[0.97]'
+                        ? isDark
+                          ? 'bg-white text-gray-900 shadow-lg scale-[0.97]'
+                          : 'bg-gray-800 text-white shadow-lg scale-[0.97]'
+                        : isDark
+                          ? 'bg-[#3a3a3a] text-white hover:bg-[#454545] active:scale-[0.97]'
+                          : 'bg-[#efefe6] text-gray-900 hover:bg-[#e5e5db] active:scale-[0.97]'
                     }
                   `}
                   style={{ letterSpacing: '0.02em' }}
@@ -367,12 +443,16 @@ function GameContent() {
         {/* Mistakes */}
         {!gameOver && !gameWon && (
           <div className="flex items-center justify-center gap-1.5 mb-5">
-            <span className="text-[13px] text-gray-500 mr-1">{t.mistakesRemaining}</span>
+            <span className={`text-[13px] mr-1 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+              {t.mistakesRemaining}
+            </span>
             {[...Array(4)].map((_, i) => (
               <div
                 key={i}
                 className={`w-[10px] h-[10px] rounded-full transition-all duration-300 ${
-                  i < mistakesLeft ? 'bg-gray-800' : 'bg-gray-200'
+                  i < mistakesLeft
+                    ? isDark ? 'bg-white' : 'bg-gray-800'
+                    : isDark ? 'bg-gray-700' : 'bg-gray-200'
                 }`}
               />
             ))}
@@ -382,7 +462,11 @@ function GameContent() {
         {/* One away */}
         {showOneAway && (
           <div className="text-center mb-3 animate-fade-in">
-            <span className="inline-block bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-1.5 rounded-full text-[13px] font-semibold">
+            <span className={`inline-block px-4 py-1.5 rounded-full text-[13px] font-semibold border ${
+              isDark
+                ? 'bg-yellow-900/30 border-yellow-700 text-yellow-300'
+                : 'bg-yellow-50 border-yellow-200 text-yellow-800'
+            }`}>
               {t.oneAway}
             </span>
           </div>
@@ -391,17 +475,37 @@ function GameContent() {
         {/* Action buttons */}
         {!gameOver && !gameWon && (
           <div className="flex gap-2 justify-center mb-3 flex-wrap">
-            <button onClick={handleShuffle} className="game-btn-outline">
+            <button
+              onClick={handleShuffle}
+              className={`px-5 py-2.5 border-2 rounded-full font-bold text-[13px] transition-colors uppercase tracking-wide ${
+                isDark
+                  ? 'border-white text-white hover:bg-white/10'
+                  : 'border-gray-800 text-gray-800 hover:bg-gray-50'
+              }`}
+            >
               {t.shuffle}
             </button>
-            <button onClick={handleDeselectAll} className="game-btn-outline">
+            <button
+              onClick={handleDeselectAll}
+              className={`px-5 py-2.5 border-2 rounded-full font-bold text-[13px] transition-colors uppercase tracking-wide ${
+                isDark
+                  ? 'border-white text-white hover:bg-white/10'
+                  : 'border-gray-800 text-gray-800 hover:bg-gray-50'
+              }`}
+            >
               {t.deselectAll}
             </button>
             <button
               onClick={handleSubmit}
               disabled={selected.length !== 4}
-              className={`game-btn-submit ${
-                selected.length === 4 ? 'game-btn-submit-active' : 'game-btn-submit-disabled'
+              className={`px-5 py-2.5 rounded-full font-bold text-[13px] transition-all uppercase tracking-wide ${
+                selected.length === 4
+                  ? isDark
+                    ? 'bg-white text-gray-900 hover:bg-gray-200 shadow-md cursor-pointer'
+                    : 'bg-gray-800 text-white hover:bg-gray-700 shadow-md cursor-pointer'
+                  : isDark
+                    ? 'bg-gray-800 text-gray-600 cursor-not-allowed'
+                    : 'bg-gray-200 text-gray-400 cursor-not-allowed'
               }`}
             >
               {t.submit}
@@ -409,19 +513,16 @@ function GameContent() {
           </div>
         )}
 
-        {/* Review buttons */}
+        {/* Review button */}
         <div className="flex gap-3 justify-center mb-8 mt-2">
-          <button onClick={() => setShowReviewModal(true)} className="review-btn-primary">
+          <button
+            onClick={() => setShowReviewModal(true)}
+            className="flex items-center gap-2 px-5 py-2.5 bg-purple-600 text-white rounded-full font-bold text-[13px] hover:bg-purple-700 transition-colors shadow-md"
+          >
             <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M12 20h9" /><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
             </svg>
             {t.leaveReview}
-          </button>
-          <button onClick={() => setShowReviewsList(true)} className="review-btn-secondary">
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-            </svg>
-            {t.viewReviews}
           </button>
         </div>
 
@@ -429,18 +530,21 @@ function GameContent() {
         {gameOver && (
           <div className="text-center py-6 animate-fade-in">
             <div className="text-5xl mb-4">😔</div>
-            <h2 className="text-2xl font-black text-gray-900 mb-2" style={{ fontFamily: "'Georgia', serif" }}>
+            <h2
+              className={`text-2xl font-black mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}
+              style={{ fontFamily: "'Georgia', serif" }}
+            >
               {t.nextTime}
             </h2>
-            <p className="text-gray-500 mb-6 text-[14px]">
+            <p className={`mb-6 text-[14px] ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
               {t.groupsLeft(4 - solvedGroups.length)}
             </p>
             <div className="space-y-2 mb-8">
-              {GROUPS.filter((g) => !solvedGroups.some((s) => s.category === g.category)).map(
+              {currentGroups.filter((g) => !solvedGroups.some((s) => s.category === g.category)).map(
                 (group) => (
                   <div key={group.category} className="rounded-xl px-4 py-3 text-center" style={{ backgroundColor: group.color }}>
                     <div className="font-bold text-[13px] tracking-wide" style={{ color: group.textColor }}>
-                      {getCategoryName(group, lang)}
+                      {group.category}
                     </div>
                     <div className="text-[13px] mt-1 opacity-75" style={{ color: group.textColor }}>
                       {group.words.join(', ')}
@@ -449,7 +553,16 @@ function GameContent() {
                 )
               )}
             </div>
-            <button onClick={handleRestart} className="game-btn-dark">{t.playAgain}</button>
+            <button
+              onClick={handleRestart}
+              className={`px-8 py-3 rounded-full font-bold text-[14px] transition-colors shadow-lg ${
+                isDark
+                  ? 'bg-white text-gray-900 hover:bg-gray-200'
+                  : 'bg-gray-800 text-white hover:bg-gray-700'
+              }`}
+            >
+              {t.playAgain}
+            </button>
           </div>
         )}
 
@@ -457,34 +570,49 @@ function GameContent() {
         {gameWon && (
           <div className="text-center py-6 animate-fade-in">
             <div className="text-5xl mb-4">🎉</div>
-            <h2 className="text-2xl font-black text-gray-900 mb-2" style={{ fontFamily: "'Georgia', serif" }}>
+            <h2
+              className={`text-2xl font-black mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}
+              style={{ fontFamily: "'Georgia', serif" }}
+            >
               {t.brilliant}
             </h2>
-            <p className="text-gray-500 mb-1 text-[14px]">{t.foundAll}</p>
-            <p className="text-gray-400 text-[13px] mb-8">
+            <p className={`mb-1 text-[14px] ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+              {t.foundAll}
+            </p>
+            <p className={`text-[13px] mb-8 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
               {mistakes === 0 ? t.perfect : t.mistakes(mistakes)}
             </p>
-            <button onClick={handleRestart} className="game-btn-dark">{t.playAgain}</button>
+            <button
+              onClick={handleRestart}
+              className={`px-8 py-3 rounded-full font-bold text-[14px] transition-colors shadow-lg ${
+                isDark
+                  ? 'bg-white text-gray-900 hover:bg-gray-200'
+                  : 'bg-gray-800 text-white hover:bg-gray-700'
+              }`}
+            >
+              {t.playAgain}
+            </button>
           </div>
         )}
       </div>
 
-      {/* Modals */}
+      {/* Review Modal */}
       {showReviewModal && <ReviewModal onClose={() => setShowReviewModal(false)} />}
-      {showReviewsList && <ReviewsModal onClose={() => setShowReviewsList(false)} />}
     </div>
   );
 }
 
 // ============ LANGUAGE SWITCHER ============
-function LangSwitcher() {
-  const { lang, setLang } = useLang();
+function LangSwitcher({ lang, setLang }: { lang: Lang; setLang: (l: Lang) => void }) {
+  const { isDark } = useApp();
   return (
-    <div className="flex items-center bg-gray-100 rounded-full p-0.5 w-20">
+    <div className={`flex items-center rounded-full p-0.5 w-20 ${isDark ? 'bg-gray-800' : 'bg-gray-100'}`}>
       <button
         onClick={() => setLang('en')}
         className={`flex-1 text-[12px] font-bold py-1.5 rounded-full transition-all ${
-          lang === 'en' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400 hover:text-gray-600'
+          lang === 'en'
+            ? isDark ? 'bg-gray-700 text-white shadow-sm' : 'bg-white text-gray-900 shadow-sm'
+            : isDark ? 'text-gray-500 hover:text-gray-300' : 'text-gray-400 hover:text-gray-600'
         }`}
       >
         EN
@@ -492,7 +620,9 @@ function LangSwitcher() {
       <button
         onClick={() => setLang('ru')}
         className={`flex-1 text-[12px] font-bold py-1.5 rounded-full transition-all ${
-          lang === 'ru' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400 hover:text-gray-600'
+          lang === 'ru'
+            ? isDark ? 'bg-gray-700 text-white shadow-sm' : 'bg-white text-gray-900 shadow-sm'
+            : isDark ? 'text-gray-500 hover:text-gray-300' : 'text-gray-400 hover:text-gray-600'
         }`}
       >
         RU
@@ -501,15 +631,48 @@ function LangSwitcher() {
   );
 }
 
+// ============ THEME TOGGLE ============
+function ThemeToggle({ isDark, toggleTheme }: { isDark: boolean; toggleTheme: () => void }) {
+  return (
+    <button
+      onClick={toggleTheme}
+      className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
+        isDark
+          ? 'bg-gray-800 hover:bg-gray-700 text-yellow-300'
+          : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+      }`}
+      title={isDark ? 'Light mode' : 'Dark mode'}
+    >
+      {isDark ? (
+        <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="12" r="5" />
+          <line x1="12" y1="1" x2="12" y2="3" />
+          <line x1="12" y1="21" x2="12" y2="23" />
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+          <line x1="1" y1="12" x2="3" y2="12" />
+          <line x1="21" y1="12" x2="23" y2="12" />
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+        </svg>
+      ) : (
+        <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+        </svg>
+      )}
+    </button>
+  );
+}
+
 // ============ REVIEW MODAL (Google Forms embed) ============
 function ReviewModal({ onClose }: { onClose: () => void }) {
-  const { t } = useLang();
+  const { t, isDark } = useApp();
   const [iframeLoaded, setIframeLoaded] = useState(false);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/50 animate-fade-in" onClick={onClose}>
       <div
-        className="bg-white rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col"
+        className={`rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col ${isDark ? 'bg-[#2a2a2a]' : 'bg-white'}`}
         style={{ maxHeight: '90vh', height: '85vh' }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -535,12 +698,14 @@ function ReviewModal({ onClose }: { onClose: () => void }) {
         </div>
 
         {/* Google Form iframe */}
-        <div className="flex-1 relative bg-gray-50">
+        <div className={`flex-1 relative ${isDark ? 'bg-gray-800' : 'bg-gray-50'}`}>
           {!iframeLoaded && (
             <div className="absolute inset-0 flex items-center justify-center">
               <div className="text-center">
-                <div className="w-8 h-8 border-3 border-purple-200 border-t-purple-600 rounded-full animate-spin mx-auto mb-3" />
-                <p className="text-gray-400 text-[13px]">Loading form...</p>
+                <div className={`w-8 h-8 border-3 rounded-full animate-spin mx-auto mb-3 ${
+                  isDark ? 'border-gray-700 border-t-purple-400' : 'border-purple-200 border-t-purple-600'
+                }`} />
+                <p className={`text-[13px] ${isDark ? 'text-gray-400' : 'text-gray-400'}`}>Loading form...</p>
               </div>
             </div>
           )}
@@ -553,8 +718,10 @@ function ReviewModal({ onClose }: { onClose: () => void }) {
         </div>
 
         {/* Footer */}
-        <div className="border-t border-gray-100 px-5 py-3 flex-shrink-0 flex items-center justify-between">
-          <span className="text-gray-400 text-[11px] flex items-center gap-1">
+        <div className={`border-t px-5 py-3 flex-shrink-0 flex items-center justify-between ${
+          isDark ? 'border-gray-700' : 'border-gray-100'
+        }`}>
+          <span className={`text-[11px] flex items-center gap-1 ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
             <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <circle cx="12" cy="12" r="10" /><path d="M12 16v-4" /><path d="M12 8h.01" />
             </svg>
@@ -564,7 +731,7 @@ function ReviewModal({ onClose }: { onClose: () => void }) {
             href={GOOGLE_FORM_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-purple-600 text-[12px] font-semibold hover:text-purple-700 flex items-center gap-1"
+            className="text-purple-400 text-[12px] font-semibold hover:text-purple-300 flex items-center gap-1"
           >
             {t.openForm}
             <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -572,78 +739,6 @@ function ReviewModal({ onClose }: { onClose: () => void }) {
               <polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" />
             </svg>
           </a>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ============ REVIEWS LIST MODAL ============
-function ReviewsModal({ onClose }: { onClose: () => void }) {
-  const { t } = useLang();
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 animate-fade-in" onClick={onClose}>
-      <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
-        {/* Header */}
-        <div className="bg-purple-600 px-6 py-5 border-t-4 border-purple-800">
-          <div className="flex items-center justify-between">
-            <h2 className="text-white text-lg font-bold flex items-center gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-              </svg>
-              {t.reviewsTitle}
-            </h2>
-            <button onClick={onClose} className="text-white/80 hover:text-white transition-colors">
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-              </svg>
-            </button>
-          </div>
-        </div>
-
-        {/* Content */}
-        <div className="p-6">
-          <div className="text-center py-6">
-            <div className="w-16 h-16 bg-purple-50 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 text-purple-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                <polyline points="14 2 14 8 20 8" />
-                <line x1="16" y1="13" x2="8" y2="13" />
-                <line x1="16" y1="17" x2="8" y2="17" />
-              </svg>
-            </div>
-            <p className="text-gray-600 text-[14px] mb-2 leading-relaxed">
-              {t.viewNote}
-            </p>
-            <p className="text-gray-400 text-[12px] flex items-center justify-center gap-1 mb-6">
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="12" cy="12" r="10" /><path d="M12 16v-4" /><path d="M12 8h.01" />
-              </svg>
-              {t.poweredBy}
-            </p>
-          </div>
-
-          <div className="space-y-3">
-            <a
-              href={GOOGLE_FORM_RESPONSES}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center justify-center gap-2 w-full px-6 py-3 bg-purple-600 text-white rounded-full font-bold text-[13px] hover:bg-purple-700 transition-colors shadow-md"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                <circle cx="12" cy="12" r="3" />
-              </svg>
-              {t.viewResponses}
-            </a>
-            <button
-              onClick={onClose}
-              className="w-full px-6 py-3 border-2 border-gray-200 text-gray-600 rounded-full font-bold text-[13px] hover:bg-gray-50 transition-colors"
-            >
-              {t.close}
-            </button>
-          </div>
         </div>
       </div>
     </div>
