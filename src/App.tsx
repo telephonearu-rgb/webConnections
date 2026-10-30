@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useRef, createContext, useContext } f
 
 // ============ TRANSLATIONS ============
 type Lang = 'en' | 'ru';
+type Difficulty = 'easy' | 'hard';
 
 const translations = {
   en: {
@@ -24,6 +25,8 @@ const translations = {
     openForm: 'Open in New Tab',
     reviewNote: 'Your review will be sent via Google Forms',
     poweredBy: 'Powered by Google Forms',
+    easy: 'Easy',
+    hard: 'Hard',
   },
   ru: {
     title: 'Связи',
@@ -45,6 +48,8 @@ const translations = {
     openForm: 'Открыть в новой вкладке',
     reviewNote: 'Ваш отзыв будет отправлен через Google Формы',
     poweredBy: 'Работает на Google Формы',
+    easy: 'Легко',
+    hard: 'Сложно',
   },
 } as const;
 
@@ -68,6 +73,8 @@ interface TranslationShape {
   openForm: string;
   reviewNote: string;
   poweredBy: string;
+  easy: string;
+  hard: string;
 }
 
 const LangContext = createContext<{
@@ -102,7 +109,8 @@ interface Group {
   difficulty: number;
 }
 
-const GROUPS_EN: Group[] = [
+// ===== EASY - ENGLISH =====
+const GROUPS_EN_EASY: Group[] = [
   {
     category: 'BREAKFAST FOODS',
     words: ['WAFFLE', 'TOAST', 'CEREAL', 'YOGURT'],
@@ -133,14 +141,54 @@ const GROUPS_EN: Group[] = [
   },
 ];
 
-const INITIAL_WORDS_EN = [
+const INITIAL_WORDS_EN_EASY = [
   'WAFFLE', 'CROWN', 'RAPID', 'SAND',
   'TOAST', 'HELMET', 'SWIFT', 'TRACING',
   'CEREAL', 'TURBAN', 'FLEET', 'WRAPPING',
   'YOGURT', 'BERET', 'HASTY', 'BUTCHER',
 ];
 
-const GROUPS_RU: Group[] = [
+// ===== HARD - ENGLISH =====
+const GROUPS_EN_HARD: Group[] = [
+  {
+    category: 'THINGS WITH LEGS',
+    words: ['TABLE', 'SPIDER', 'PANTS', 'CHAIR'],
+    color: '#f9df6d',
+    textColor: '#5c4b00',
+    difficulty: 1,
+  },
+  {
+    category: '___ DROP',
+    words: ['GUM', 'MIC', 'NAME', 'DEAD'],
+    color: '#a0c35a',
+    textColor: '#2d4a0a',
+    difficulty: 2,
+  },
+  {
+    category: 'SYNONYMS FOR "TIRED"',
+    words: ['EXHAUSTED', 'DRAINED', 'SPENT', 'WORN'],
+    color: '#b0c4ef',
+    textColor: '#1a2f5c',
+    difficulty: 3,
+  },
+  {
+    category: 'WORDS WITH DOUBLE LETTERS',
+    words: ['COFFEE', 'BALLOON', 'RABBIT', 'PUZZLE'],
+    color: '#ba81c5',
+    textColor: '#3d1a47',
+    difficulty: 4,
+  },
+];
+
+const INITIAL_WORDS_EN_HARD = [
+  'TABLE', 'GUM', 'EXHAUSTED', 'COFFEE',
+  'SPIDER', 'MIC', 'DRAINED', 'BALLOON',
+  'PANTS', 'NAME', 'SPENT', 'RABBIT',
+  'CHAIR', 'DEAD', 'WORN', 'PUZZLE',
+];
+
+// ===== EASY - RUSSIAN =====
+const GROUPS_RU_EASY: Group[] = [
   {
     category: 'ФРУКТЫ',
     words: ['ЯБЛОКО', 'БАНАН', 'АПЕЛЬСИН', 'ГРУША'],
@@ -171,17 +219,61 @@ const GROUPS_RU: Group[] = [
   },
 ];
 
-const INITIAL_WORDS_RU = [
+const INITIAL_WORDS_RU_EASY = [
   'ЯБЛОКО', 'МАРС', 'СКОРЫЙ', 'СТЕКЛЯННЫЙ',
   'БАНАН', 'ВЕНЕРА', 'СТРЕМИТЕЛЬНЫЙ', 'КУКОЛЬНЫЙ',
   'АПЕЛЬСИН', 'ЮПИТЕР', 'БОРЗОЙ', 'ДЕРЕВЕНСКИЙ',
   'ГРУША', 'САТУРН', 'ШУСТРЫЙ', 'РОДНОЙ',
 ];
 
-function getGameForLang(lang: Lang) {
-  return lang === 'ru'
-    ? { groups: GROUPS_RU, initialWords: INITIAL_WORDS_RU }
-    : { groups: GROUPS_EN, initialWords: INITIAL_WORDS_EN };
+// ===== HARD - RUSSIAN =====
+const GROUPS_RU_HARD: Group[] = [
+  {
+    category: 'ТО, ЧТО МОЖНО ОТКРЫТЬ',
+    words: ['ДВЕРЬ', 'КНИГА', 'СЕЗОН', 'ТАЙНА'],
+    color: '#f9df6d',
+    textColor: '#5c4b00',
+    difficulty: 1,
+  },
+  {
+    category: 'СЛОВА С БУКВОЙ «Щ»',
+    words: ['ЩУКА', 'ЩЕНОК', 'ЩЕЛКА', 'ЩЕДРЫЙ'],
+    color: '#a0c35a',
+    textColor: '#2d4a0a',
+    difficulty: 2,
+  },
+  {
+    category: 'ОМОНИМЫ (РАЗНЫЕ ЗНАЧЕНИЯ)',
+    words: ['КЛЮЧ', 'КОСА', 'ЛУК', 'МИР'],
+    color: '#b0c4ef',
+    textColor: '#1a2f5c',
+    difficulty: 3,
+  },
+  {
+    category: 'ГЕОГРАФИЧЕСКИЕ ТЕРМИНЫ',
+    words: ['МЫС', 'ПРОЛИВ', 'ПОЛУОСТРОВ', 'ПЕРЕШЕЕК'],
+    color: '#ba81c5',
+    textColor: '#3d1a47',
+    difficulty: 4,
+  },
+];
+
+const INITIAL_WORDS_RU_HARD = [
+  'ДВЕРЬ', 'ЩУКА', 'КЛЮЧ', 'МЫС',
+  'КНИГА', 'ЩЕНОК', 'КОСА', 'ПРОЛИВ',
+  'СЕЗОН', 'ЩЕЛКА', 'ЛУК', 'ПОЛУОСТРОВ',
+  'ТАЙНА', 'ЩЕДРЫЙ', 'МИР', 'ПЕРЕШЕЕК',
+];
+
+function getGameForLangAndDifficulty(lang: Lang, difficulty: Difficulty) {
+  if (lang === 'ru') {
+    return difficulty === 'hard'
+      ? { groups: GROUPS_RU_HARD, initialWords: INITIAL_WORDS_RU_HARD }
+      : { groups: GROUPS_RU_EASY, initialWords: INITIAL_WORDS_RU_EASY };
+  }
+  return difficulty === 'hard'
+    ? { groups: GROUPS_EN_HARD, initialWords: INITIAL_WORDS_EN_HARD }
+    : { groups: GROUPS_EN_EASY, initialWords: INITIAL_WORDS_EN_EASY };
 }
 
 function getGroupForWord(word: string, groups: Group[]) {
@@ -214,6 +306,7 @@ function getInitialTheme(): boolean {
 // ============ MAIN APP ============
 function App() {
   const [lang, setLang] = useState<Lang>('en');
+  const [difficulty, setDifficulty] = useState<Difficulty>('easy');
   const [isDark, setIsDark] = useState(getInitialTheme);
   const t = translations[lang] as TranslationShape;
 
@@ -235,14 +328,20 @@ function App() {
 
   return (
     <LangContext.Provider value={{ lang, setLang, t, isDark, toggleTheme }}>
-      <GameContent />
+      <GameContent difficulty={difficulty} setDifficulty={setDifficulty} />
     </LangContext.Provider>
   );
 }
 
-function GameContent() {
+function GameContent({
+  difficulty,
+  setDifficulty,
+}: {
+  difficulty: Difficulty;
+  setDifficulty: (d: Difficulty) => void;
+}) {
   const { lang, setLang, t, isDark, toggleTheme } = useApp();
-  const { groups: currentGroups, initialWords } = getGameForLang(lang);
+  const { groups: currentGroups, initialWords } = getGameForLangAndDifficulty(lang, difficulty);
 
   const [words, setWords] = useState<string[]>(initialWords);
   const [selected, setSelected] = useState<string[]>([]);
@@ -257,9 +356,9 @@ function GameContent() {
   const [showReviewModal, setShowReviewModal] = useState(false);
   const gridRef = useRef<HTMLDivElement>(null);
 
-  // Reset game when language changes
+  // Reset game when language or difficulty changes
   useEffect(() => {
-    const { initialWords: newWords } = getGameForLang(lang);
+    const { initialWords: newWords } = getGameForLangAndDifficulty(lang, difficulty);
     setWords(shuffleArray(newWords));
     setSelected([]);
     setSolvedGroups([]);
@@ -270,7 +369,7 @@ function GameContent() {
     setShowOneAway(false);
     setCelebrateGroup(null);
     setShowConfetti(false);
-  }, [lang]);
+  }, [lang, difficulty]);
 
   const remainingWords = words.filter(
     (w) => !solvedGroups.some((g) => g.words.includes(w))
@@ -338,7 +437,7 @@ function GameContent() {
   }, []);
 
   const handleRestart = useCallback(() => {
-    const { initialWords: newWords } = getGameForLang(lang);
+    const { initialWords: newWords } = getGameForLangAndDifficulty(lang, difficulty);
     setWords(shuffleArray(newWords));
     setSelected([]);
     setSolvedGroups([]);
@@ -349,7 +448,7 @@ function GameContent() {
     setShowOneAway(false);
     setCelebrateGroup(null);
     setShowConfetti(false);
-  }, [lang]);
+  }, [lang, difficulty]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -366,7 +465,7 @@ function GameContent() {
       {showConfetti && <Confetti />}
 
       <div className="w-full max-w-[480px]">
-        {/* Header with language & theme switchers */}
+        {/* Header with controls */}
         <div className="flex items-center justify-between mb-2 gap-2">
           <ThemeToggle isDark={isDark} toggleTheme={toggleTheme} />
           <h1
@@ -376,6 +475,11 @@ function GameContent() {
             {t.title}
           </h1>
           <LangSwitcher lang={lang} setLang={setLang} />
+        </div>
+
+        {/* Difficulty switcher */}
+        <div className="flex justify-center mb-4">
+          <DifficultySwitcher difficulty={difficulty} setDifficulty={setDifficulty} />
         </div>
 
         <div className={`border-b ${isDark ? 'border-gray-700' : 'border-gray-200'} pb-3 mb-6`} />
@@ -626,6 +730,58 @@ function LangSwitcher({ lang, setLang }: { lang: Lang; setLang: (l: Lang) => voi
         }`}
       >
         RU
+      </button>
+    </div>
+  );
+}
+
+// ============ DIFFICULTY SWITCHER ============
+function DifficultySwitcher({
+  difficulty,
+  setDifficulty,
+}: {
+  difficulty: Difficulty;
+  setDifficulty: (d: Difficulty) => void;
+}) {
+  const { isDark, t } = useApp();
+  return (
+    <div className={`flex items-center rounded-full p-1 ${isDark ? 'bg-gray-800' : 'bg-gray-100'}`}>
+      <button
+        onClick={() => setDifficulty('easy')}
+        className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[12px] font-bold transition-all ${
+          difficulty === 'easy'
+            ? isDark
+              ? 'bg-green-600 text-white shadow-sm'
+              : 'bg-green-500 text-white shadow-sm'
+            : isDark
+              ? 'text-gray-400 hover:text-gray-200'
+              : 'text-gray-500 hover:text-gray-700'
+        }`}
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="12" r="10" />
+          <path d="M8 14s1.5 2 4 2 4-2 4-2" />
+          <line x1="9" y1="9" x2="9.01" y2="9" />
+          <line x1="15" y1="9" x2="15.01" y2="9" />
+        </svg>
+        {t.easy}
+      </button>
+      <button
+        onClick={() => setDifficulty('hard')}
+        className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[12px] font-bold transition-all ${
+          difficulty === 'hard'
+            ? isDark
+              ? 'bg-red-600 text-white shadow-sm'
+              : 'bg-red-500 text-white shadow-sm'
+            : isDark
+              ? 'text-gray-400 hover:text-gray-200'
+              : 'text-gray-500 hover:text-gray-700'
+        }`}
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+        </svg>
+        {t.hard}
       </button>
     </div>
   );
