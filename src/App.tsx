@@ -508,7 +508,7 @@ function GameContent({
 
         {/* Word grid */}
         {!gameOver && !gameWon && (
-          <div ref={gridRef} className="grid grid-cols-4 gap-[6px] mb-4">
+          <div ref={gridRef} className="grid grid-cols-4 gap-2 mb-4">
             {remainingWords.map((word, index) => {
               const isSelected = selected.includes(word);
               const isShaking = shakeWords.includes(word);
@@ -519,10 +519,12 @@ function GameContent({
                   key={`${word}-${index}`}
                   onClick={() => handleWordClick(word)}
                   className={`
-                    relative rounded-lg font-semibold text-[14px] sm:text-[15px]
+                    relative rounded-lg font-semibold
                     flex items-center justify-center text-center
                     transition-all duration-150 select-none
-                    h-[72px] sm:h-[80px]
+                    h-[84px] sm:h-[92px]
+                    px-1.5 py-2
+                    leading-tight
                     ${isCelebrating ? 'animate-celebrate' : ''}
                     ${isShaking ? 'animate-shake' : ''}
                     ${
@@ -535,7 +537,10 @@ function GameContent({
                           : 'bg-[#efefe6] text-gray-900 hover:bg-[#e5e5db] active:scale-[0.97]'
                     }
                   `}
-                  style={{ letterSpacing: '0.02em' }}
+                  style={{
+                    letterSpacing: '0.02em',
+                    fontSize: word.length > 9 ? '12px' : word.length > 7 ? '13px' : '15px',
+                  }}
                 >
                   {word}
                 </button>
