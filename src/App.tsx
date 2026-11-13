@@ -525,6 +525,7 @@ function GameContent({
                     h-[84px] sm:h-[92px]
                     px-1.5 py-2
                     leading-tight
+                    break-all overflow-hidden
                     ${isCelebrating ? 'animate-celebrate' : ''}
                     ${isShaking ? 'animate-shake' : ''}
                     ${
@@ -539,7 +540,7 @@ function GameContent({
                   `}
                   style={{
                     letterSpacing: '0.02em',
-                    fontSize: word.length > 9 ? '12px' : word.length > 7 ? '13px' : '15px',
+                    fontSize: word.length > 9 ? 'clamp(10px, 2.5vw, 12px)' : word.length > 7 ? '13px' : '15px',
                   }}
                 >
                   {word}
