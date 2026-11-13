@@ -55,11 +55,12 @@
 
 /* Game buttons */
 .game-btn-outline {
-  @apply px-5 py-2.5 border-2 border-gray-800 text-gray-800 rounded-full font-bold text-[13px] hover:bg-gray-50 transition-colors uppercase tracking-wide;
+  /* Убрали text-[13px], добавили text-sm и whitespace-nowrap для защиты от переноса */
+  @apply px-5 py-2.5 border-2 border-gray-800 text-gray-800 rounded-full font-bold text-sm hover:bg-gray-50 transition-colors uppercase tracking-wide whitespace-nowrap;
 }
 
 .game-btn-submit {
-  @apply px-5 py-2.5 rounded-full font-bold text-[13px] transition-all uppercase tracking-wide;
+  @apply px-5 py-2.5 rounded-full font-bold text-sm transition-all uppercase tracking-wide whitespace-nowrap;
 }
 
 .game-btn-submit-active {
@@ -71,7 +72,8 @@
 }
 
 .game-btn-dark {
-  @apply px-8 py-3 bg-gray-800 text-white rounded-full font-bold text-[14px] hover:bg-gray-700 transition-colors shadow-lg;
+  /* Убрали text-[14px] */
+  @apply px-8 py-3 bg-gray-800 text-white rounded-full font-bold text-sm hover:bg-gray-700 transition-colors shadow-lg whitespace-nowrap;
 }
 
 /* Review buttons */
@@ -102,19 +104,19 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   
-  /* 1. Добавляем базовый размер шрифта для десктопа */
   font-size: 16px;
-  line-height: 1.5; /* Рекомендую добавить для читаемости */
+  line-height: 1.5;
+  
+  /* Защита от горизонтального скролла */
+  overflow-x: hidden; 
 }
 
-/* 2. Медиа-запрос для мобильных устройств */
 @media (max-width: 768px) {
   body {
-    /* Текст будет плавно меняться от 14px до 18px в зависимости от ширины экрана */
-    font-size: clamp(14px, 3.5vw, 18px);
+    /* 4vw вместо 3.5vw сделает текст чуть крупнее и читабельнее на телефонах */
+    font-size: clamp(14px, 4vw, 18px); 
   }
 
-  /* 3. Делаем заголовки также адаптивными (добавьте свои теги, если нужно) */
   h1 {
     font-size: clamp(24px, 6vw, 36px);
     line-height: 1.2;
